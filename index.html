@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TMOG Operation</title>
+<meta name="description" content="Operation dashboard for The Makeover Guys Sarawak">
+<meta name="theme-color" content="#0e7490">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TMOG Operation">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  html,body{margin:0;height:100%;background:#0b1220;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  #app{position:fixed;inset:0;width:100%;height:100%;border:0;display:block;background:#0b1220;padding-top:env(safe-area-inset-top);box-sizing:border-box}
+  #splash{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 30% 20%,#134e4a,#0b1220 60%);color:#e2f3f1;z-index:2;transition:opacity .4s}
+  #splash.gone{opacity:0;pointer-events:none}
+  .box{text-align:center;padding:24px}
+  .box img{width:96px;height:96px;border-radius:24px;box-shadow:0 12px 40px rgba(20,184,166,.35)}
+  .box h1{font-size:20px;margin:18px 0 4px;letter-spacing:.3px}
+  .box p{margin:0;color:#8fb3ae;font-size:13px}
+  .spin{width:26px;height:26px;margin:20px auto 0;border:3px solid rgba(255,255,255,.15);border-top-color:#2dd4bf;border-radius:50%;animation:s 0.9s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .btn{display:inline-block;margin:16px 6px 0;padding:10px 18px;border-radius:12px;border:0;background:#14b8a6;color:#04201d;font-weight:700;font-size:14px;text-decoration:none;cursor:pointer}
+  .btn.s{background:transparent;color:#e2f3f1;border:1px solid rgba(255,255,255,.25)}
+  #help{display:none}
+</style>
+</head>
+<body>
+<div id="splash" role="status" aria-live="polite">
+  <div class="box">
+    <img src="icons/icon-192.png" alt="">
+    <h1>TMOG Operation</h1>
+    <p id="msg">Opening the dashboard…</p>
+    <div class="spin" id="spin"></div>
+    <div id="help">
+      <button class="btn" id="retry">Try again</button>
+      <a class="btn s" id="ext" target="_blank" rel="noopener">Open in browser</a>
+    </div>
+  </div>
+</div>
+<iframe id="app" title="TMOG Operation dashboard" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+<script>
+/* ===== The only setting: your Apps Script web app link (Deploy > Manage deployments > Web app URL) ===== */
+const DASHBOARD_URL = 'https://script.google.com/macros/s/AKfycbyHYEPMz0WZN5LX_VoXxuyWBEzRus0ugT2thfZCkTLufrk0qqZTybPHktJeMYM-dDaUiA/exec';
+
+const $ = id => document.getElementById(id);
+const frame = $('app'), splash = $('splash');
+$('ext').href = DASHBOARD_URL;
+let timer;
+function load() {
+  $('help').style.display = 'none'; $('spin').style.display = ''; splash.classList.remove('gone');
+  if (!navigator.onLine) return problem('You are offline. Connect to the internet and try again.');
+  $('msg').textContent = 'Opening the dashboard…';
+  clearTimeout(timer);
+  timer = setTimeout(() => problem('The dashboard is taking a long time to open.'), 25000);
+  frame.src = DASHBOARD_URL;
+}
+function problem(text) {
+  clearTimeout(timer); $('msg').textContent = text; $('spin').style.display = 'none'; $('help').style.display = 'block';
+  splash.classList.remove('gone');
+}
+// the dashboard says "tmog-ready" once it has started; a blocked or failed page never does
+addEventListener('message', e => {
+  if (e.data === 'tmog-ready' && /(^|\.)google(usercontent)?\.com$/.test(new URL(e.origin).hostname)) { clearTimeout(timer); splash.classList.add('gone'); }
+});
+frame.addEventListener('load', () => {
+  if (!frame.src) return;
+  clearTimeout(timer);
+  timer = setTimeout(() => problem('The dashboard did not open inside the app. Make sure the latest version of the Apps Script is deployed.'), 12000);
+});
+$('retry').onclick = load;
+addEventListener('online', () => { if (!splash.classList.contains('gone')) load(); });
+addEventListener('offline', () => problem('You are offline. The dashboard will come back when you reconnect.'));
+load();
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
